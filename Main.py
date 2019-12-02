@@ -8,7 +8,7 @@ def main():
     audioPath = "D:\\music"
 
     #download the video
-    downloader = Downloader("https://www.youtube.com/watch?v=HUIllVCwWGU", "D:\\music")
+    downloader = Downloader("https://www.youtube.com/watch?v=93ugDwiBVzA", videosPath)
     downloader.download()
 
     songName = downloader.getName()
@@ -18,5 +18,6 @@ def main():
     converter = ConverterToMp3(downloadedVideoPath, audioPath)
     converter.convert(songName)
 
+    os.remove(downloadedVideoPath)
 if __name__ == '__main__':
     main()

@@ -1,7 +1,5 @@
 from pytube import YouTube
 import os
-from moviepy.editor import *
-
 class Downloader:
     def __init__(self, link, path):
         self.link = link
