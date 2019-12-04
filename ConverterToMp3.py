@@ -1,5 +1,5 @@
 from moviepy.editor import *
-from os import *
+
 class ConverterToMp3:
     def __init__(self,songPath,destinationPath):
         self.songPath = songPath
