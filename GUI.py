@@ -1,7 +1,10 @@
 from tkinter import filedialog
+from tkinter import ttk
 from tkinter import *
 from Downloader import *
 from ConverterToMp3 import *
+import time
+import threading
 
 class GUI:
     def __init__(self):
@@ -34,7 +37,16 @@ class GUI:
 
         self.downloadButton = Button(self.top,text="Download",command = self.downloadCallBack)
         self.downloadButton.grid(row=2,column = 1)
+
+        self.progressBar = ttk.Progressbar(self.top, orient="horizontal", length=286, mode="determinate")
+        self.progressBar.grid(row=3, column = 0)
+
+        self.progressBarText = StringVar()
+        self.progressBarText.set('')
+        self.progressBarLabel = Label(self.top,textvariable = self.progressBarText)
+        self.progressBarLabel.grid(row = 3,column = 1)
         self.top.mainloop()
+
     def changeDirCallBack(self):
         self.directory.delete(0,END)
         self.directory.insert(0,filedialog.askdirectory())
@@ -46,16 +58,28 @@ class GUI:
 
     def downloadCallBack(self):
         path = self.directory.get()
+        path = path.replace('/','\\')
         try:
+            self.progressBarText.set('Downloading')
             #download to mp4
-            downloader = Downloader(self.link.get(), path)
+            downloader = Downloader(self.link.get(), path, self.progressBar)
             downloader.download()
             songName = downloader.getName()
+            songName = songName.replace(',','').replace('.','')
             downloadedVideoPath = os.path.join(path, songName + '.mp4')
 
             # then convert it to mp3
+
             converter = ConverterToMp3(downloadedVideoPath, path)
-            converter.convert(songName)
-            os.remove(downloadedVideoPath)
-        except:
-            print("can't download")
+            t = threading.Thread(target=self.convert,args=(downloadedVideoPath,path,songName,))
+            t.start()
+            self.progressBarText.set('Converting to mp3')
+        except Exception as e:
+            self.progressBarText.set("Can't download")
+            print(str(e))
+
+    def convert(self,downloadedVideoPath,path,songName):
+        converter = ConverterToMp3(downloadedVideoPath, path)
+        converter.convert(songName)
+        os.remove(downloadedVideoPath)
+        self.progressBarText.set('Done')
