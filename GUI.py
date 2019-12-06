@@ -38,13 +38,7 @@ class GUI:
         self.downloadButton = Button(self.top,text="Download",command = self.downloadCallBack)
         self.downloadButton.grid(row=2,column = 1)
 
-        self.progressBar = ttk.Progressbar(self.top, orient="horizontal", length=286, mode="determinate")
-        self.progressBar.grid(row=3, column = 0)
-
-        self.progressBarText = StringVar()
-        self.progressBarText.set('')
-        self.progressBarLabel = Label(self.top,textvariable = self.progressBarText)
-        self.progressBarLabel.grid(row = 3,column = 1)
+        self.currentRow = 3
         self.top.mainloop()
 
     def changeDirCallBack(self):
@@ -57,12 +51,24 @@ class GUI:
         f.close()
 
     def downloadCallBack(self):
+        threading.Thread(target=self.download).start()
+
+    def download(self):
+        progressBar = ttk.Progressbar(self.top, orient="horizontal", length=286, mode="determinate")
+        progressBar.grid(row=self.currentRow, column=0)
+
+        progressBarText = StringVar()
+        progressBarText.set('')
+        progressBarLabel = Label(self.top, textvariable=progressBarText)
+        progressBarLabel.grid(row=self.currentRow, column=1)
+
+        self.currentRow += 1
         path = self.directory.get()
         path = path.replace('/','\\')
         try:
-            self.progressBarText.set('Downloading')
+            progressBarText.set('Downloading')
             #download to mp4
-            downloader = Downloader(self.link.get(), path, self.progressBar)
+            downloader = Downloader(self.link.get(), path, progressBar)
             downloader.download()
             songName = downloader.getName()
             songName = songName.replace(',','').replace('.','')
@@ -71,15 +77,25 @@ class GUI:
             # then convert it to mp3
 
             converter = ConverterToMp3(downloadedVideoPath, path)
-            t = threading.Thread(target=self.convert,args=(downloadedVideoPath,path,songName,))
+            t = threading.Thread(target=self.convert,args=(downloadedVideoPath,path,songName,progressBarText))
             t.start()
-            self.progressBarText.set('Converting to mp3')
+            progressBarText.set('Converting to mp3')
+            t.join()
         except Exception as e:
-            self.progressBarText.set("Can't download")
+            progressBarText.set("Can't download")
             print(str(e))
+        finally:
+            t = threading.Thread(target=self.waitToDestroy,args=(progressBar,progressBarLabel))
+            t.start()
+            self.currentRow-=1
 
-    def convert(self,downloadedVideoPath,path,songName):
+    def waitToDestroy(self,progressBar,label):
+        time.sleep(5)
+        progressBar.destroy()
+        label.destroy()
+
+    def convert(self,downloadedVideoPath,path,songName,progressBarText):
         converter = ConverterToMp3(downloadedVideoPath, path)
         converter.convert(songName)
         os.remove(downloadedVideoPath)
-        self.progressBarText.set('Done')
+        progressBarText.set('Done')
